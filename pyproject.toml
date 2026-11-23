@@ -12,7 +12,8 @@ dependencies = []
 [project.optional-dependencies]
 dev = ["pytest>=8", "mypy>=1.10", "ruff>=0.5"]
 
-# À compléter : la commande installée (section [project.scripts])
+[project.scripts]
+mobilis = "mobilis.cli:console_main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

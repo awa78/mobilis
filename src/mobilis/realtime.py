@@ -233,14 +233,16 @@ class MobilisApiClient:
         except ValueError as error:
             raise ApiProtocolError(f"Photo de station invalide pour {code}: {error}") from error
 
-    def snapshot_all(self, strategy: str = "threads") -> SnapshotReport:
+    def snapshot_all(
+        self, strategy: str = "threads", codes: Iterable[str] | None = None
+    ) -> SnapshotReport:
         """Photographie toutes les stations sans perdre le lot en cas d'erreur isolée."""
-        codes = self.list_station_codes()
+        selected_codes = tuple(codes) if codes is not None else self.list_station_codes()
         if strategy == "sequential":
-            results = tuple(self._snapshot_one(code) for code in codes)
+            results = tuple(self._snapshot_one(code) for code in selected_codes)
         elif strategy == "threads":
             with ThreadPoolExecutor(max_workers=self.max_concurrency) as executor:
-                results = tuple(executor.map(self._snapshot_one, codes))
+                results = tuple(executor.map(self._snapshot_one, selected_codes))
         else:
             raise ValueError("strategy doit être 'sequential' ou 'threads'")
         return _make_snapshot_report(results)
