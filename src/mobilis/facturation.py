@@ -264,6 +264,216 @@ class Facturation:
 
         return max(actifs, key=lambda abonnement: abonnement.debut) if actifs else None
 
+    def _anomalies_stations(
+        self, depart: str, arrivee: str
+    ) -> list[str]:
+        return [
+            f"station inconnue : {station}"
+            for station in (depart, arrivee)
+            if station and station not in self.stations
+        ]
+
+    def _resultat_penalite(
+        self,
+        trajet_id: str,
+        abonne_id: str | None,
+        jour: date,
+        anomalies: list[str],
+        motif_anomalie: str,
+    ) -> ResultatTrajet:
+        return ResultatTrajet(
+            trajet_id,
+            abonne_id,
+            "occasionnel",
+            jour,
+            arrondir(self.penalite_non_restitution),
+            "non-restitution",
+            anomalies + [motif_anomalie],
+        )
+
+    def _resultat_non_restitution(
+        self,
+        trajet_id: str,
+        abonne_id: str | None,
+        jour: date,
+        fin: datetime | None,
+        depart: str,
+        arrivee: str,
+        anomalies: list[str],
+    ) -> ResultatTrajet | None:
+        if fin is not None and depart and arrivee:
+            return None
+        return self._resultat_penalite(
+            trajet_id,
+            abonne_id,
+            jour,
+            anomalies,
+            "non-restitution",
+        )
+
+    def _resultat_duree_invalide(
+        self,
+        trajet_id: str,
+        abonne_id: str | None,
+        jour: date,
+        minutes: Decimal,
+        anomalies: list[str],
+    ) -> ResultatTrajet | None:
+        if minutes >= 0:
+            return None
+        return ResultatTrajet(
+            trajet_id,
+            abonne_id,
+            "non_facture",
+            jour,
+            ZERO,
+            "horodatage incohérent",
+            anomalies + ["fin antérieure au début"],
+        )
+
+    def _resultat_trajet_fantome(
+        self,
+        trajet_id: str,
+        abonne_id: str | None,
+        jour: date,
+        minutes: Decimal,
+        depart: str,
+        arrivee: str,
+        anomalies: list[str],
+    ) -> ResultatTrajet | None:
+        if minutes >= 2 or depart != arrivee:
+            return None
+        return ResultatTrajet(
+            trajet_id,
+            abonne_id,
+            "non_facture",
+            jour,
+            ZERO,
+            "trajet fantôme",
+            anomalies + ["trajet fantôme"],
+        )
+
+    def _resultat_duree_seuil(
+        self,
+        trajet_id: str,
+        abonne_id: str | None,
+        jour: date,
+        minutes: Decimal,
+        anomalies: list[str],
+    ) -> ResultatTrajet | None:
+        seuil = Decimal(self.seuil_non_restitution_heures * 60)
+        if minutes <= seuil:
+            return None
+        return self._resultat_penalite(
+            trajet_id,
+            abonne_id,
+            jour,
+            anomalies,
+            "durée supérieure au seuil",
+        )
+
+    def _calculer_facture_valide(
+        self,
+        trajet_id: str,
+        abonne_id: str | None,
+        jour: date,
+        minutes: Decimal,
+        type_velo: str,
+        anomalies: list[str],
+        cumuls: dict[tuple[str, date], Decimal],
+    ) -> ResultatTrajet:
+        abonnement = self.abonnement_actif(abonne_id, jour)
+        formule = abonnement.formule if abonnement else "occasionnel"
+
+        if abonne_id and not any(
+            abonne.abonne_id == abonne_id for abonne in self.abonnements
+        ):
+            anomalies.append(f"abonné inconnu : {abonne_id}")
+
+        grille = self.grille_pour_date(jour)
+        tarif = grille.formules.get(formule)
+        if tarif is None:
+            formule = "occasionnel"
+            tarif = grille.formules["occasionnel"]
+
+        electrique = "elect" in type_velo or "élect" in type_velo
+        montant = self.politique.calculer(minutes, tarif, electrique)
+
+        if abonnement and tarif.plafond_jour is not None:
+            cle = (abonne_id or "", jour)
+            restant = max(ZERO, tarif.plafond_jour - cumuls[cle])
+            montant = min(montant, restant)
+            cumuls[cle] += montant
+
+        return ResultatTrajet(
+            trajet_id,
+            abonne_id,
+            formule,
+            jour,
+            arrondir(montant),
+            "facturé",
+            anomalies,
+        )
+
+    def _facturer_un_trajet(
+        self,
+        trajet: dict[str, object],
+        cumuls: dict[tuple[str, date], Decimal],
+    ) -> ResultatTrajet:
+        trajet_id = str(trajet.get("trajet_id", ""))
+        debut = lire_datetime(trajet.get("debut"))  # type: ignore[arg-type]
+        fin = lire_datetime(trajet.get("fin"))  # type: ignore[arg-type]
+        abonne_id = (
+            str(trajet["abonne_id"]) if trajet.get("abonne_id") else None
+        )
+        depart = str(trajet.get("station_depart") or "")
+        arrivee = str(trajet.get("station_arrivee") or "")
+        type_velo = str(trajet.get("type_velo") or "").lower()
+
+        if debut is None:
+            return ResultatTrajet(
+                trajet_id,
+                abonne_id,
+                "non_facture",
+                None,
+                ZERO,
+                "début manquant",
+                ["début manquant ou invalide"],
+            )
+
+        jour = date_locale(debut)
+        anomalies = self._anomalies_stations(depart, arrivee)
+
+        penalite = self._resultat_non_restitution(
+            trajet_id, abonne_id, jour, fin, depart, arrivee, anomalies
+        )
+        if penalite is not None:
+            return penalite
+
+        assert fin is not None
+        minutes = duree_minutes(debut, fin)  # fin validée ci-dessus
+        duree_invalide = self._resultat_duree_invalide(
+            trajet_id, abonne_id, jour, minutes, anomalies
+        )
+        if duree_invalide is not None:
+            return duree_invalide
+
+        fantome = self._resultat_trajet_fantome(
+            trajet_id, abonne_id, jour, minutes, depart, arrivee, anomalies
+        )
+        if fantome is not None:
+            return fantome
+
+        penalite_seuil = self._resultat_duree_seuil(
+            trajet_id, abonne_id, jour, minutes, anomalies
+        )
+        if penalite_seuil is not None:
+            return penalite_seuil
+
+        return self._calculer_facture_valide(
+            trajet_id, abonne_id, jour, minutes, type_velo, anomalies, cumuls
+        )
+
     def facturer_trajets(
         self, trajets: Iterable[dict[str, object]]
     ) -> list[ResultatTrajet]:
@@ -273,13 +483,16 @@ class Facturation:
 
         for trajet in trajets:
             trajet_id = str(trajet.get("trajet_id", ""))
-            anomalies: list[str] = []
-
             if trajet_id and trajet_id in deja_vus:
                 resultats.append(
                     ResultatTrajet(
-                        trajet_id, None, "non_facture", None, ZERO,
-                        "doublon", ["trajet dupliqué"]
+                        trajet_id,
+                        None,
+                        "non_facture",
+                        None,
+                        ZERO,
+                        "doublon",
+                        ["trajet dupliqué"],
                     )
                 )
                 continue
@@ -287,115 +500,6 @@ class Facturation:
             if trajet_id:
                 deja_vus.add(trajet_id)
 
-            debut = lire_datetime(trajet.get("debut"))  # type: ignore[arg-type]
-            fin = lire_datetime(trajet.get("fin"))  # type: ignore[arg-type]
-            abonne_id = (
-                str(trajet["abonne_id"])
-                if trajet.get("abonne_id")
-                else None
-            )
-            depart = str(trajet.get("station_depart") or "")
-            arrivee = str(trajet.get("station_arrivee") or "")
-            type_velo = str(trajet.get("type_velo") or "").lower()
-
-            if debut is None:
-                resultats.append(
-                    ResultatTrajet(
-                        trajet_id, abonne_id, "non_facture", None, ZERO,
-                        "début manquant", ["début manquant ou invalide"]
-                    )
-                )
-                continue
-
-            jour = date_locale(debut)
-
-            for station in (depart, arrivee):
-                if station and station not in self.stations:
-                    anomalies.append(f"station inconnue : {station}")
-
-            # R9 : non-restitution
-            if fin is None or not depart or not arrivee:
-                resultats.append(
-                    ResultatTrajet(
-                        trajet_id, abonne_id, "occasionnel", jour,
-                        arrondir(self.penalite_non_restitution),
-                        "non-restitution", anomalies + ["non-restitution"]
-                    )
-                )
-                continue
-
-            minutes = duree_minutes(debut, fin)
-
-            # R10 : fin antérieure au début
-            if minutes < 0:
-                resultats.append(
-                    ResultatTrajet(
-                        trajet_id, abonne_id, "non_facture", jour, ZERO,
-                        "horodatage incohérent",
-                        anomalies + ["fin antérieure au début"]
-                    )
-                )
-                continue
-
-            # R8 : trajet fantôme
-            if minutes < 2 and depart == arrivee:
-                resultats.append(
-                    ResultatTrajet(
-                        trajet_id, abonne_id, "non_facture", jour, ZERO,
-                        "trajet fantôme", anomalies + ["trajet fantôme"]
-                    )
-                )
-                continue
-
-            # R9 : dépassement du seuil
-            if minutes > Decimal(
-                self.seuil_non_restitution_heures * 60
-            ):
-                resultats.append(
-                    ResultatTrajet(
-                        trajet_id, abonne_id, "occasionnel", jour,
-                        arrondir(self.penalite_non_restitution),
-                        "non-restitution",
-                        anomalies + ["durée supérieure au seuil"]
-                    )
-                )
-                continue
-
-            abonnement = self.abonnement_actif(abonne_id, jour)
-            formule = abonnement.formule if abonnement else "occasionnel"
-
-            if abonne_id and not any(
-                abonne.abonne_id == abonne_id
-                for abonne in self.abonnements
-            ):
-                anomalies.append(
-                    f"abonné inconnu : {abonne_id}"
-                )
-
-            grille = self.grille_pour_date(jour)
-            tarif = grille.formules.get(formule)
-
-            if tarif is None:
-                formule = "occasionnel"
-                tarif = grille.formules["occasionnel"]
-
-            electrique = "elect" in type_velo or "élect" in type_velo
-            montant = self.politique.calculer(minutes, tarif, electrique)
-
-            # R6 : plafond journalier des abonnés
-            if abonnement and tarif.plafond_jour is not None:
-                cle = (abonne_id or "", jour)
-                restant = max(
-                    ZERO, tarif.plafond_jour - cumuls[cle]
-                )
-                montant = min(montant, restant)
-                cumuls[cle] += montant
-
-            resultats.append(
-                ResultatTrajet(
-                    trajet_id, abonne_id, formule, jour,
-                    arrondir(montant), "facturé", anomalies
-                )
-            )
+            resultats.append(self._facturer_un_trajet(trajet, cumuls))
 
         return resultats
