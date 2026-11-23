@@ -85,6 +85,12 @@ class StationReport:
         """Renvoie les stations actives disposant d'une capacité et de coordonnées."""
         return tuple(station for station in self.stations if station.is_exploitable)
 
+    @property
+    def codes_seen(self) -> tuple[str, ...]:
+        """Tous les codes non vides du source, y compris les codes ambigus."""
+        codes = {station.code for station in self.stations} | set(self.duplicate_codes)
+        return tuple(sorted(codes))
+
 
 class StationFileError(ValueError):
     """Erreur de structure du fichier empêchant toute lecture des stations."""

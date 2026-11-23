@@ -125,6 +125,7 @@ def test_excludes_every_row_with_duplicate_code(tmp_path):
     assert report.rows_read == 2
     assert report.stations == ()
     assert report.duplicate_codes == ("MB-0001",)
+    assert report.codes_seen == ("MB-0001",)
     assert len([item for item in report.anomalies if item.field == "Code station"]) == 2
 
 
