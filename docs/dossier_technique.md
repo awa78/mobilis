@@ -348,38 +348,64 @@ pytest -q && mypy --strict src/mobilis && ruff check src tests scripts
 ## Page 17
 
 Organisation Git et bilans individuels
-L'historique distingue les apports: Hadile a ajoute le pipeline initial de trajets puis le moteur de facturation et ses tests.
-Awa a developpe le referentiel des stations, l'etat temps reel et le CLI initial, puis a corrige le dedoublonnage, les
-anomalies et les rapports des cas 2 et 3. Les commits portent les noms de leurs auteurs.
-Les branches sont awa/stations, hadil/trajets et awa/corrections-cas2-cas3. La branche par defaut doit recevoir le code
-final apres relecture par un pair. Les demandes de fusion servent a contreler les changements et maintenir une
-contribution attribuable a chacun.
-Bilan Awa - a completer par Awa: difficulte rencontree, notion apprise, contribution dont elle est le plus satisfaite et
-amelioration qu'elle ferait avec plus de temps. Bilan Hadile - a completer par Hadile avec les memes points. Ces textes
-doivent refleter leur experience personnelle et ne sont pas inventes dans ce brouillon.
- - Awa: bilan individuel a rediger et valider.
- - Hadile: bilan individuel a rediger et valider.
- - La revue de la demande de fusion doit etre consignee avant la fusion finale.
+L'historique distingue les apports. Hadile a créé la lecture et l'analyse initiales des trajets, puis le moteur de facturation et
+des tests des règles. Awa a développé le référentiel des stations, l'état temps réel et les premières commandes; elle a
+ensuite corrigé et documenté le pipeline des trajets et les rapports de facturation.
+Les commits sont attribués à leurs auteurs et les branches de travail ont été intégrées dans awa/corrections-cas2-cas3.
+Cette branche est publiée. Une demande de fusion avec relecture par un pair reste à créer : l'historique montre les
+contributions, mais la relecture n'est pas encore prouvée.
+Une proposition de bilan général et deux brouillons individuels sont présentés page 19. Ils s'appuient sur les corrections
+et l'historique Git; chaque membre doit les relire, corriger les éléments personnels et confirmer qu'ils décrivent bien son
+expérience.
 
 ## Page 18
 
 Limites et suites proposees
-Les lignes d'abonnement malformees ne peuvent pas etre reconstituees sans preuve. Elles sont ignorees et comptees;
-les factures associees sont traitees selon la regle R3 lorsque l'abonnement ne peut pas etre retrouve.
-tracemalloc mesure la memoire Python, pas les caches natifs du systeme ou de SQLite. Sur une entree cent fois plus
-grande, le pic Python observe passe de 2,48 a 3,01 Mio. Le benchmark satisfait donc l'objectif de memoire constante
-pour le pipeline.
-La workflow GitHub Actions est configuree, mais son statut distant devra etre confirme apres publication de la branche.
-Les bilans individuels restent a rediger et valider par Awa et Hadile.
+Les abonnements malformés ne peuvent pas être reconstitués sans preuve. Ils sont comptés et ignorés; lorsqu'un
+abonnement n'est pas retrouvé, le tarif occasionnel est appliqué selon R3.
+tracemalloc mesure la mémoire Python suivie, pas la mémoire native du système ou de SQLite. Sur une entrée cent fois
+plus grande, le pic suivi passe de 2,48 à 3,01 Mio. La mesure API est sous 15 secondes sur l'exécution décrite, mais trois
+stations ont répondu en erreur.
+Les bilans individuels sont maintenant proposés page 19 et doivent être validés par Awa et Hadile. Le statut de la CI
+distante, la relecture de la demande de fusion et l'installation sur une machine propre restent à confirmer.
 Suite
-Etat
-Pipeline 100x
-Mesure terminee; 3,01 Mio de pic Python
+État
+Benchmark 100x
+Mesuré; pic Python 3,01 Mio
 CI GitHub
-A confirmer apres push
-Bilans individuels
-A completer par chaque membre
+À confirmer sur GitHub
+Brouillons des bilans
+À relire par chaque membre
 Demande de fusion
-A faire relire par un pair
-- Conserver les decisions et les resultats avec la version des donnees utilisee.
-- Mettre a jour ce dossier si les chiffres ou le code changent.
+À créer et faire relire
+
+## Page 19
+
+Bilan général et bilans individuels
+Bilan général du projet
+Le projet a transformé les cinq questions de Mobilis en une bibliothèque Python installable. Le travail sur les données a
+révélé plusieurs difficultés concrètes : encodages anciens, formats de dates différents, trajets non triés ou en double,
+champs incomplets et abonnements malformés. Les choix de traitement ont été documentés et couverts par des tests.
+La facturation utilise Decimal et les règles du kit; l'analyse des trajets fonctionne en flux, et le client temps réel gère
+pagination, limites de concurrence et erreurs temporaires.
+La suite locale passe 75 tests, mypy strict et Ruff. Le benchmark 100x traite 15 501 100 trajets uniques avec un pic
+tracemalloc de 3,01 Mio. La mesure de l'API est sous 15 secondes, mais inclut trois bornes en échec; le résultat ne
+signifie donc pas que toutes les stations ont répondu. Les suites prioritaires sont la relecture par un pair, la vérification de
+la CI distante, un essai d'installation sur une machine propre et la préparation de la soutenance.
+Brouillon individuel - Awa (à relire et personnaliser)
+Dans ce projet, j'ai contribué au référentiel des stations, au client de l'API temps réel et aux commandes. J'ai aussi
+travaillé sur les corrections du pipeline de trajets et sur les résultats de facturation. Une difficulté importante a été de
+traiter des données réelles imparfaites sans les modifier à la main : dates de formats différents, identifiants dupliqués et
+champs manquants. J'ai appris à rendre les traitements plus robustes, à vérifier les choix par des tests et à mesurer la
+mémoire sur un fichier beaucoup plus gros. Je suis particulièrement satisfaite que les anomalies et les limites soient
+visibles dans les rapports. Pour améliorer ma contribution, je voudrais encore faire relire les changements et vérifier
+l'installation et les commandes sur une machine propre.
+Brouillon individuel - Hadile (à relire et personnaliser)
+Dans ce projet, j'ai contribué à la lecture et à l'analyse des trajets, puis à la facturation et aux tests des règles tarifaires.
+La difficulté a été de faire fonctionner ces traitements malgré les données incomplètes et les règles qui se combinent,
+tout en gardant des résultats explicables. Ce travail m'a permis de pratiquer les générateurs pour lire les trajets en flux, la
+séparation des politiques tarifaires et les tests de cas limites. Je retiens surtout l'importance de tester les règles avec des
+exemples précis et de simplifier le code après une première version. Pour la suite, je voudrais participer à la relecture de
+la demande de fusion et vérifier avec l'équipe que les choix et les chiffres du dossier sont faciles à reproduire.
+Ces deux textes sont des propositions fondées sur l'historique Git et les problèmes traités. Awa et Hadile doivent corriger toute phrase
+qui ne décrit pas leur expérience réelle avant le rendu.
