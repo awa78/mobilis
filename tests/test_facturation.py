@@ -84,83 +84,103 @@ def trajet(
 
 def test_e1_annuel_mecanique_25_minutes() -> None:
     moteur = creer_facturation()
-    resultat = moteur.facturer_trajets([
-        trajet(
-            "E1", "A1",
-            "2026-09-10T10:00:00+02:00",
-            "2026-09-10T10:25:00+02:00",
-        )
-    ])
+    resultat = moteur.facturer_trajets(
+        [
+            trajet(
+                "E1",
+                "A1",
+                "2026-09-10T10:00:00+02:00",
+                "2026-09-10T10:25:00+02:00",
+            )
+        ]
+    )
     assert resultat[0].montant == Decimal("0.00")
 
 
 def test_e2_annuel_electrique_25_minutes() -> None:
     moteur = creer_facturation()
-    resultat = moteur.facturer_trajets([
-        trajet(
-            "E2", "A1",
-            "2026-09-10T10:00:00+02:00",
-            "2026-09-10T10:25:00+02:00",
-            "electric",
-        )
-    ])
+    resultat = moteur.facturer_trajets(
+        [
+            trajet(
+                "E2",
+                "A1",
+                "2026-09-10T10:00:00+02:00",
+                "2026-09-10T10:25:00+02:00",
+                "electric",
+            )
+        ]
+    )
     assert resultat[0].montant == Decimal("0.50")
 
 
 def test_e3_mensuel_mecanique_61_minutes() -> None:
     moteur = creer_facturation()
-    resultat = moteur.facturer_trajets([
-        trajet(
-            "E3", "M1",
-            "2026-09-10T10:00:00+02:00",
-            "2026-09-10T11:01:00+02:00",
-        )
-    ])
+    resultat = moteur.facturer_trajets(
+        [
+            trajet(
+                "E3",
+                "M1",
+                "2026-09-10T10:00:00+02:00",
+                "2026-09-10T11:01:00+02:00",
+            )
+        ]
+    )
     assert resultat[0].montant == Decimal("2.00")
 
 
 def test_e4_occasionnel_electrique_20_minutes() -> None:
     moteur = creer_facturation()
-    resultat = moteur.facturer_trajets([
-        trajet(
-            "E4", None,
-            "2026-10-05T10:00:00+02:00",
-            "2026-10-05T10:20:00+02:00",
-            "electric",
-        )
-    ])
+    resultat = moteur.facturer_trajets(
+        [
+            trajet(
+                "E4",
+                None,
+                "2026-10-05T10:00:00+02:00",
+                "2026-10-05T10:20:00+02:00",
+                "electric",
+            )
+        ]
+    )
     assert resultat[0].montant == Decimal("3.70")
 
 
 def test_e5_plafond_journalier_annuel() -> None:
     moteur = creer_facturation()
-    resultat = moteur.facturer_trajets([
-        trajet(
-            "E5-1", "A1",
-            "2026-08-12T08:00:00+02:00",
-            "2026-08-12T11:00:00+02:00",
-        ),
-        trajet(
-            "E5-2", "A1",
-            "2026-08-12T12:00:00+02:00",
-            "2026-08-12T15:00:00+02:00",
-        ),
-        trajet(
-            "E5-3", "A1",
-            "2026-08-12T16:00:00+02:00",
-            "2026-08-12T19:00:00+02:00",
-        ),
-    ])
+    resultat = moteur.facturer_trajets(
+        [
+            trajet(
+                "E5-1",
+                "A1",
+                "2026-08-12T08:00:00+02:00",
+                "2026-08-12T11:00:00+02:00",
+            ),
+            trajet(
+                "E5-2",
+                "A1",
+                "2026-08-12T12:00:00+02:00",
+                "2026-08-12T15:00:00+02:00",
+            ),
+            trajet(
+                "E5-3",
+                "A1",
+                "2026-08-12T16:00:00+02:00",
+                "2026-08-12T19:00:00+02:00",
+            ),
+        ]
+    )
     assert sum(r.montant for r in resultat) == Decimal("12.00")
 
 
 def test_e6_changement_heure_hiver() -> None:
     moteur = creer_facturation()
-    resultat = moteur.facturer_trajets([
-        trajet(
-            "E6", "A1",
-            "2026-10-25T02:40:00+02:00",
-            "2026-10-25T02:10:00+01:00",
-        )
-    ])
+    resultat = moteur.facturer_trajets(
+        [
+            trajet(
+                "E6",
+                "A1",
+                "2026-10-25T02:40:00+02:00",
+                "2026-10-25T02:10:00+01:00",
+            )
+        ]
+    )
     assert resultat[0].montant == Decimal("0.00")
