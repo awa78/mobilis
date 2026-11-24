@@ -1,7 +1,9 @@
 import csv
 import gzip
+from collections import Counter
 from datetime import UTC, datetime
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 import pytest
 
@@ -43,6 +45,26 @@ def test_convertir_date_formats_valides(
 def test_convertir_date_valeur_vide() -> None:
     assert convertir_date("") is None
 
+
+def test_convertir_trajets_compte_dates_manquantes_et_invalides() -> None:
+    anomalies: Counter[str] = Counter()
+    trajets = list(
+        convertir_trajets(
+            iter(
+                [
+                    {"trajet_id": "T1", "debut": "date incorrecte", "fin": ""},
+                    {"trajet_id": "T2", "debut": "2026-08-01T08:00:00Z", "fin": ""},
+                ]
+            ),
+            anomalies,
+        )
+    )
+    assert len(trajets) == 2
+    assert trajets[0]["debut"] is None
+    assert anomalies["date_invalide:debut"] == 1
+    assert anomalies["date_manquante:fin"] == 2
+
+
 def test_lire_trajets_fichier_gzip(tmp_path: Path) -> None:
     chemin = tmp_path / "trajets.csv.gz"
 
@@ -72,6 +94,7 @@ def test_lire_trajets_fichier_gzip(tmp_path: Path) -> None:
     assert trajets[0]["station_depart"] == "MB-001"
     assert trajets[0]["distance_m"] == "2500"
 
+
 def test_convertir_trajets_convertit_dates_et_conserve_champs() -> None:
     trajet = {
         "trajet_id": "T001",
@@ -88,12 +111,8 @@ def test_convertir_trajets_convertit_dates_et_conserve_champs() -> None:
     trajets_convertis = list(convertir_trajets(iter([trajet])))
 
     assert len(trajets_convertis) == 1
-    assert trajets_convertis[0]["debut"] == datetime(
-        2026, 8, 1, 6, 0, 0, tzinfo=UTC
-    )
-    assert trajets_convertis[0]["fin"] == datetime(
-        2026, 8, 1, 6, 15, 0, tzinfo=UTC
-    )
+    assert trajets_convertis[0]["debut"] == datetime(2026, 8, 1, 6, 0, 0, tzinfo=UTC)
+    assert trajets_convertis[0]["fin"] == datetime(2026, 8, 1, 6, 15, 0, tzinfo=UTC)
     assert trajets_convertis[0]["distance_m"] == "2500"
     assert trajets_convertis[0]["trajet_id"] == "T001"
 
@@ -109,6 +128,7 @@ def test_convertir_trajets_ne_modifie_pas_trajet_original() -> None:
 
     assert isinstance(trajet["debut"], str)
     assert isinstance(trajet["fin"], str)
+
 
 def test_dedoublonner_trajets() -> None:
     trajets = [
@@ -137,6 +157,23 @@ def test_dedoublonner_trajets_conserve_trajets_sans_identifiant() -> None:
     resultat = list(dedoublonner_trajets(trajets))
 
     assert len(resultat) == 2
+
+
+def test_dedoublonner_compte_doublons_et_identifiants_absents() -> None:
+    anomalies: Counter[str] = Counter()
+    resultat = list(
+        dedoublonner_trajets(
+            [
+                {"trajet_id": " T001 "},
+                {"trajet_id": "T001"},
+                {"trajet_id": ""},
+            ],
+            anomalies,
+        )
+    )
+    assert len(resultat) == 2
+    assert anomalies["trajet_id_duplique"] == 1
+    assert anomalies["identifiant_absent"] == 1
 
 
 def test_filtrer_trajets_distance_minimale() -> None:
@@ -303,24 +340,24 @@ def test_analyser_trajets_statistiques_completes() -> None:
             "trajet_id": "T001",
             "station_depart": "S001",
             "station_arrivee": "S002",
-            "debut": datetime(2026, 8, 3, 8, 0, tzinfo=UTC),
-            "fin": datetime(2026, 8, 3, 8, 30, tzinfo=UTC),
+            "debut": datetime(2026, 8, 3, 8, 0, tzinfo=ZoneInfo("Europe/Paris")),
+            "fin": datetime(2026, 8, 3, 8, 30, tzinfo=ZoneInfo("Europe/Paris")),
             "distance_m": "2500",
         },
         {
             "trajet_id": "T002",
             "station_depart": "S001",
             "station_arrivee": "S003",
-            "debut": datetime(2026, 8, 3, 18, 0, tzinfo=UTC),
-            "fin": datetime(2026, 8, 3, 18, 30, tzinfo=UTC),
+            "debut": datetime(2026, 8, 3, 18, 0, tzinfo=ZoneInfo("Europe/Paris")),
+            "fin": datetime(2026, 8, 3, 18, 30, tzinfo=ZoneInfo("Europe/Paris")),
             "distance_m": "3500",
         },
         {
             "trajet_id": "T003",
             "station_depart": "S004",
             "station_arrivee": "S001",
-            "debut": datetime(2026, 8, 8, 12, 0, tzinfo=UTC),
-            "fin": datetime(2026, 8, 8, 12, 30, tzinfo=UTC),
+            "debut": datetime(2026, 8, 8, 12, 0, tzinfo=ZoneInfo("Europe/Paris")),
+            "fin": datetime(2026, 8, 8, 12, 30, tzinfo=ZoneInfo("Europe/Paris")),
             "distance_m": "1500",
         },
     ]
@@ -360,3 +397,36 @@ def test_analyser_trajets_statistiques_completes() -> None:
     assert isinstance(soir, dict)
     assert matin["S001"] == 1
     assert soir["S003"] == 1
+
+
+def test_analyser_trajets_classe_les_stations_par_flux_net() -> None:
+    paris = ZoneInfo("Europe/Paris")
+    trajets = [
+        {
+            "station_depart": "A",
+            "station_arrivee": "B",
+            "debut": datetime(2026, 8, 3, 8, 0, tzinfo=paris),
+            "distance_m": "1000",
+        },
+        {
+            "station_depart": "C",
+            "station_arrivee": "A",
+            "debut": datetime(2026, 8, 3, 8, 30, tzinfo=paris),
+            "distance_m": "1000",
+        },
+        {
+            "station_depart": "D",
+            "station_arrivee": "E",
+            "debut": datetime(2026, 8, 3, 18, 0, tzinfo=paris),
+            "distance_m": "1000",
+        },
+        {
+            "station_depart": "E",
+            "station_arrivee": "F",
+            "debut": datetime(2026, 8, 3, 18, 30, tzinfo=paris),
+            "distance_m": "1000",
+        },
+    ]
+    resultat = analyser_trajets(trajets)
+    assert resultat["stations_vides_matin"] == [("C", 1)]
+    assert resultat["stations_pleines_soir"] == [("F", 1)]
