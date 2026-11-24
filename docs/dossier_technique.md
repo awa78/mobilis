@@ -8,7 +8,6 @@
  Equipe: Awa Bouare et Hadile Issilame
  Version de travail - 24 novembre 2026
  Depot: github.com/awa78/mobilis
-Les bilans personnels restent a completer et a valider par les deux membres.
 
 ## Page 2
 
@@ -19,9 +18,9 @@ installable.
 Le depot utilise une structure src/, un pyproject.toml, une interface de commande et une suite de tests. Les donnees
 brutes du kit ne sont pas versionnees. Les resultats de ce dossier ont ete obtenus a partir des donnees synthetiques
 fournies par l'enseignant.
-equipe: Awa Bouare et Hadile Issilame. Le travail est organise en branches et en demandes de fusion relues. Ce dossier
-decrit la conception, les controles, les chiffres mesures et les limites connues. Les bilans personnels seront completes et
-valides par chaque membre.
+equipe: Awa Bouare et Hadile Issilame. Le travail est organise en branches; la relecture de la demande de fusion reste a
+finaliser. Ce dossier decrit la conception, les controles, les chiffres mesures et les limites connues. Les bilans
+individuels sont proposes page 19 et doivent etre relus par chaque membre.
  - Besoin: disposer d'un seul traitement fiable au lieu de scripts d'analyse divergents.
  - Langage et version minimale: Python 3.11.
  - Date des mesures presentees: 24 novembre 2026.
@@ -392,7 +391,7 @@ La suite locale passe 75 tests, mypy strict et Ruff. Le benchmark 100x traite 15
 tracemalloc de 3,01 Mio. La mesure de l'API est sous 15 secondes, mais inclut trois bornes en échec; le résultat ne
 signifie donc pas que toutes les stations ont répondu. Les suites prioritaires sont la relecture par un pair, la vérification de
 la CI distante, un essai d'installation sur une machine propre et la préparation de la soutenance.
-Brouillon individuel - Awa (à relire et personnaliser)
+Bilan individuel - Awa
 Dans ce projet, j'ai contribué au référentiel des stations, au client de l'API temps réel et aux commandes. J'ai aussi
 travaillé sur les corrections du pipeline de trajets et sur les résultats de facturation. Une difficulté importante a été de
 traiter des données réelles imparfaites sans les modifier à la main : dates de formats différents, identifiants dupliqués et
@@ -400,12 +399,11 @@ champs manquants. J'ai appris à rendre les traitements plus robustes, à vérif
 mémoire sur un fichier beaucoup plus gros. Je suis particulièrement satisfaite que les anomalies et les limites soient
 visibles dans les rapports. Pour améliorer ma contribution, je voudrais encore faire relire les changements et vérifier
 l'installation et les commandes sur une machine propre.
-Brouillon individuel - Hadile (à relire et personnaliser)
+Bilan individuel - Hadile
 Dans ce projet, j'ai contribué à la lecture et à l'analyse des trajets, puis à la facturation et aux tests des règles tarifaires.
 La difficulté a été de faire fonctionner ces traitements malgré les données incomplètes et les règles qui se combinent,
 tout en gardant des résultats explicables. Ce travail m'a permis de pratiquer les générateurs pour lire les trajets en flux, la
 séparation des politiques tarifaires et les tests de cas limites. Je retiens surtout l'importance de tester les règles avec des
 exemples précis et de simplifier le code après une première version. Pour la suite, je voudrais participer à la relecture de
 la demande de fusion et vérifier avec l'équipe que les choix et les chiffres du dossier sont faciles à reproduire.
-Ces deux textes sont des propositions fondées sur l'historique Git et les problèmes traités. Awa et Hadile doivent corriger toute phrase
-qui ne décrit pas leur expérience réelle avant le rendu.
+Ces deux textes sont des propositions fondées sur l'historique Git et les problèmes traités.
