@@ -135,29 +135,6 @@ calcules sur l'heure locale.
 ## Page 8
 
 Cas 2 - resultats et anomalies
-Sur le fichier fourni, le pipeline retient 155 011 trajets uniques. La distance valide cumulee est de 703 139 254 metres. La
-commande frequentation affiche separement les profils semaine et week-end, les anomalies, le pic memoire Python et
-les flux nets de stations.
-Le journal d'anomalies compte 620 identifiants dupliques, 4 676 distances absentes ou invalides, 78 fins manquantes et
-78 stations d'arrivee manquantes. Les doublons sont ignores; les trajets dont la distance est invalide restent utiles aux
-comptages qui n'utilisent pas cette valeur.
-Sur l'execution mesuree du fichier reel, tracemalloc indique un pic de 2,48 Mio pour la commande de frequentation. Le
-benchmark cent fois plus gros est lance separement; son resultat final sera ajoute a ce dossier apres sa fin.
-Mesure
-Valeur
-Trajets uniques
-155 011
-Distance valide totale
-703 139 254 m
-Doublons
-620
-Distances invalides
-4 676
-Fin manquante / arrivee absente
-78 / 78
-Pic Python sur la source reelle
-2,48 Mio
-Cas 2 - resultats et anomalies
 Sur le fichier du kit, le pipeline garde 155 011 trajets uniques et cumule 703 139 254 metres de distance valide. Le pic
 Python mesure sur la source reelle est de 2,48 Mio.
 Le benchmark 100x a genere 15 563 100 lignes dans un fichier temporaire compresse de 336,87 Mio. Le pipeline a traite
@@ -177,7 +154,7 @@ Creation du fichier / analyse 100x
 150,95 / 844,74 s
 Anomalies - doublons
 620
-Distances invalide / fin manquante / arrivee absente
+Distances invalides / fin manquante / arrivee absente
 4 676 / 78 / 78
 - L'index des identifiants est conserve dans un fichier SQLite temporaire avec cache plafonne.
 - Le fichier de benchmark est supprime automatiquement a la fin.
@@ -386,20 +363,6 @@ doivent refleter leur experience personnelle et ne sont pas inventes dans ce bro
 
 ## Page 18
 
-Limites et suites proposees
-La bibliotheque traite les donnees du kit, mais les choix metier sur les lignes abimees restent des hypotheses explicites.
-Les enregistrements d'abonnement impossibles a lire ne peuvent pas etre associes avec certitude a un client; ils sont
-comptes puis ignores. Les chiffres doivent etre presentes avec ce contexte.
-La mesure tracemalloc decrit la memoire Python suivie pendant le pipeline; les caches natifs du systeme et de SQLite ne
-sont pas dans cette valeur. Le benchmark 100 fois plus grand doit etre acheve et son temps et son pic memoire ajoutes
-au journal et au dossier. Le test GitHub Actions doit etre confirme apres publication.
-La prochaine amelioration est de faire relire et fusionner les demandes de fusion, personnaliser les bilans individuels,
-lancer le benchmark 100 fois et verifier le PDF final. Aucune donnee ni decision d'anomalie ne devrait etre cachee pour
-rendre les chiffres plus favorables.
- - Confirmer la mesure 100 fois sur la machine de reference.
- - Faire valider les bilans individuels par Awa et Hadile.
- - Observer les controles de la CI et enregistrer le resultat.
- - Mettre a jour ce dossier si le code ou les donnees changent.
 Limites et suites proposees
 Les lignes d'abonnement malformees ne peuvent pas etre reconstituees sans preuve. Elles sont ignorees et comptees;
 les factures associees sont traitees selon la regle R3 lorsque l'abonnement ne peut pas etre retrouve.
